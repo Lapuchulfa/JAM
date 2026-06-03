@@ -1,0 +1,13 @@
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+MemoryCaptures/
+Logs/
+UserSettings/
+*.csproj
+*.sln
+*.suo
+
+
