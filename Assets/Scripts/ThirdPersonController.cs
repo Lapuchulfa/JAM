@@ -1,92 +1,136 @@
 using UnityEngine;
 
+[RequireComponent(typeof(AudioSource))]
 public class ThirdPersonController : MonoBehaviour
 {
     [Header("Movimiento")]
-    public float moveSpeed = 6f;       // Reducido un poco para mayor control inicial
-    public float rotationTime = 0.15f;  // Tiempo que tarda en orientarse (más bajo = más rápido)
+    public float moveSpeed = 10f;
+    public float acceleration = 50f;
+    [Range(0f, 1f)]
+    public float airControl = 0.4f;
+    public float rotationTime = 0.15f;
+    public float modelYawOffset = -90f;
 
     [Header("Salto")]
-    public float jumpForce = 5f;
+    public float jumpForce = 12f;
+    // Gravedad forzada por cÃ³digo: ignora el valor serializado en escena
+    [HideInInspector] public float fallMultiplier = 6f;
+    [HideInInspector] public float lowJumpMultiplier = 3f;
     public Transform groundCheck;
-    public float groundDistance = 0.3f;
+    public float groundDistance = 0.6f;
     public LayerMask groundMask;
+
+    [Header("Sonidos")]
+    public AudioClip jumpUpClip;
+    public AudioClip jumpLandingClip;
+    public AudioClip boingClip;
 
     private Rigidbody rb;
     private Transform cameraTransform;
     private Animator animator;
+    private AudioSource audioSource;
     private bool isGrounded;
-    private float turnCalVelocity;     // Variable interna para el suavizado de rotación
+    private bool wasGrounded;
+    private bool jumpRequested;
+    private float turnCalVelocity;
+    private Vector3 inputDirection;
+
+    void Awake()
+    {
+        // Forzar valores de gravedad aquÃ­ para que nunca quede el valor viejo del Inspector
+        fallMultiplier = 6f;
+        lowJumpMultiplier = 3f;
+    }
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         animator = GetComponent<Animator>();
 
-        if (Camera.main != null)
-        {
-            cameraTransform = Camera.main.transform;
-        }
+        audioSource = GetComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+        audioSource.spatialBlend = 0f; // 2D: sin desfase por posiciÃ³n 3D
 
-        // Mantener al personaje vertical y evitar que ruede por colisiones
+        // Gravedad manual total: desactiva la de Unity para controlarla nosotros
+        rb.useGravity = false;
+
+        if (Camera.main != null)
+            cameraTransform = Camera.main.transform;
+
         rb.freezeRotation = true;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
     }
 
     void Update()
     {
-        // 1. Detección de suelo
+        wasGrounded = isGrounded;
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
-        if (animator != null)
-        {
-            animator.SetBool("isGrounded", isGrounded);
-        }
+        if (!wasGrounded && isGrounded)
+            PlayClip(jumpLandingClip);
 
-        // 2. Input de Salto (Se lee en Update para no perder la pulsación de la tecla)
+        if (animator != null)
+            animator.SetBool("isGrounded", isGrounded);
+
+        float horizontal = Input.GetAxisRaw("Horizontal");
+        float vertical   = Input.GetAxisRaw("Vertical");
+        inputDirection = new Vector3(horizontal, 0f, vertical).normalized;
+
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
-            // Reseteamos la velocidad vertical antes del salto para que siempre suba con la misma fuerza
-            rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            jumpRequested = true;
+            PlayClip(jumpUpClip);
         }
     }
 
     void FixedUpdate()
     {
-        // 3. Inputs de movimiento (WASD)
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        float vertical = Input.GetAxisRaw("Vertical");
-        Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
+        if (jumpRequested)
+        {
+            jumpRequested = false;
+            rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
+        }
 
+        // Movimiento horizontal relativo a la cÃ¡mara
+        Vector3 targetVelocity = Vector3.zero;
         float currentSpeed = 0f;
 
-        if (direction.magnitude >= 0.1f)
+        if (inputDirection.sqrMagnitude >= 0.01f && cameraTransform != null)
         {
-            // Calcular el ángulo hacia el que debe mirar el personaje según la cámara
-            float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cameraTransform.eulerAngles.y;
-
-            // Suavizar la rotación para que no gire de golpe
-            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnCalVelocity, rotationTime);
+            float targetAngle = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg + cameraTransform.eulerAngles.y;
+            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle + modelYawOffset, ref turnCalVelocity, rotationTime);
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
-            // Calcular la dirección final del movimiento físico
             Vector3 moveDirection = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-
-            // Aplicar velocidad al Rigidbody respetando la gravedad actual (rb.linearVelocity.y)
-            rb.linearVelocity = new Vector3(moveDirection.normalized.x * moveSpeed, rb.linearVelocity.y, moveDirection.normalized.z * moveSpeed);
-
+            targetVelocity = moveDirection * moveSpeed;
             currentSpeed = moveSpeed;
         }
-        else
-        {
-            // Frenado inmediato horizontal al soltar las teclas para evitar deslizamientos estilo jabón
-            rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
-        }
 
-        // 4. Enviar velocidad al Animator para las transiciones de Idle/Walk
+        Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        float control = isGrounded ? 1f : airControl;
+        Vector3 newVelocity = Vector3.MoveTowards(horizontalVelocity, targetVelocity, acceleration * control * Time.fixedDeltaTime);
+        rb.AddForce(newVelocity - horizontalVelocity, ForceMode.VelocityChange);
+
+        // Gravedad manual: multiplicador total (no extra), caÃ­da pesada y subida corta
+        if (rb.linearVelocity.y < 0f)
+            rb.AddForce(Physics.gravity * fallMultiplier, ForceMode.Acceleration);
+        else
+            rb.AddForce(Physics.gravity * (rb.linearVelocity.y > 0f ? lowJumpMultiplier : 1f), ForceMode.Acceleration);
+
         if (animator != null)
-        {
             animator.SetFloat("Speed", currentSpeed);
-        }
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Boing"))
+            PlayClip(boingClip);
+    }
+
+    public void PlayClip(AudioClip clip)
+    {
+        if (audioSource != null && clip != null)
+            audioSource.PlayOneShot(clip);
     }
 }
