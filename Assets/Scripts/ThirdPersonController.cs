@@ -7,13 +7,12 @@ public class ThirdPersonController : MonoBehaviour
     public float moveSpeed = 10f;
     public float acceleration = 50f;
     [Range(0f, 1f)]
-    public float airControl = 0.4f;
+    public float airControl = 0.5f;
     public float rotationTime = 0.15f;
     public float modelYawOffset = -90f;
 
     [Header("Salto")]
     public float jumpForce = 12f;
-    // Gravedad forzada por código: ignora el valor serializado en escena
     [HideInInspector] public float fallMultiplier = 6f;
     [HideInInspector] public float lowJumpMultiplier = 3f;
     public Transform groundCheck;
@@ -24,6 +23,11 @@ public class ThirdPersonController : MonoBehaviour
     public AudioClip jumpUpClip;
     public AudioClip jumpLandingClip;
     public AudioClip boingClip;
+    public AudioClip[] footstepClips;
+    [Range(0.1f, 1f)] public float footstepVolume = 0.5f;
+
+    [Header("Animaciones")]
+    public float landingAnimDuration = 0.3f;
 
     private Rigidbody rb;
     private Transform cameraTransform;
@@ -32,8 +36,12 @@ public class ThirdPersonController : MonoBehaviour
     private bool isGrounded;
     private bool wasGrounded;
     private bool jumpRequested;
+    private bool isInAir;
+    private bool wasInAir;
     private float turnCalVelocity;
     private Vector3 inputDirection;
+    private float lastFootstepTime;
+    private float footstepInterval = 0.4f;
 
     void Awake()
     {
@@ -66,20 +74,52 @@ public class ThirdPersonController : MonoBehaviour
         wasGrounded = isGrounded;
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
+        // Transición de caída a aterrizaje
         if (!wasGrounded && isGrounded)
+        {
             PlayClip(jumpLandingClip);
-
-        if (animator != null)
+            if (animator != null)
+            {
+                animator.SetTrigger("Land");
+                animator.SetBool("isGrounded", true);
+            }
+        }
+        else if (animator != null)
             animator.SetBool("isGrounded", isGrounded);
+
+        // Detección de estado en aire
+        wasInAir = isInAir;
+        isInAir = !isGrounded;
+
+        if (!wasInAir && isInAir && animator != null)
+        {
+            animator.SetTrigger("Jump");
+        }
 
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical   = Input.GetAxisRaw("Vertical");
         inputDirection = new Vector3(horizontal, 0f, vertical).normalized;
 
-        if (Input.GetButtonDown("Jump") && isGrounded)
+        // Salto con protección mejorada
+        if (Input.GetButtonDown("Jump") && isGrounded && !jumpRequested)
         {
             jumpRequested = true;
             PlayClip(jumpUpClip);
+        }
+
+        // Sonidos de pasos
+        if (isGrounded && inputDirection.sqrMagnitude >= 0.01f)
+        {
+            lastFootstepTime += Time.deltaTime;
+            if (lastFootstepTime >= footstepInterval)
+            {
+                PlayFootstep();
+                lastFootstepTime = 0f;
+            }
+        }
+        else
+        {
+            lastFootstepTime = 0f;
         }
     }
 
@@ -128,9 +168,24 @@ public class ThirdPersonController : MonoBehaviour
             PlayClip(boingClip);
     }
 
+    void PlayFootstep()
+    {
+        if (footstepClips == null || footstepClips.Length == 0) return;
+        if (audioSource == null) return;
+
+        AudioClip clip = footstepClips[Random.Range(0, footstepClips.Length)];
+        audioSource.PlayOneShot(clip, footstepVolume);
+    }
+
     public void PlayClip(AudioClip clip)
     {
         if (audioSource != null && clip != null)
             audioSource.PlayOneShot(clip);
+    }
+
+    public void PlayClip(AudioClip clip, float volume)
+    {
+        if (audioSource != null && clip != null)
+            audioSource.PlayOneShot(clip, volume);
     }
 }

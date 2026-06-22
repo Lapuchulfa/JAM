@@ -1,9 +1,15 @@
 using UnityEngine;
 
-// Plataforma roja: lanza al jugador con el doble de altura de salto (velocidad × √2).
 public class BouncyPlatform : MonoBehaviour
 {
+    [Header("Sonidos")]
     public AudioClip boingClip;
+    [Range(0.3f, 1f)] public float boingVolume = 0.8f;
+
+    [Header("Mecánica")]
+    public float bouncePower = 3.5f;
+    public float bounceScale = 1.1f;
+    public float bounceDuration = 0.15f;
 
     void OnCollisionEnter(Collision collision)
     {
@@ -13,14 +19,46 @@ public class BouncyPlatform : MonoBehaviour
         if (collision.transform.position.y > transform.position.y)
         {
             ThirdPersonController ctrl = collision.collider.GetComponentInParent<ThirdPersonController>();
-            // √2 ≈ 1.4142 duplica la altura (h ∝ v²)
-            // Con gravedad manual ×6 al caer, necesita más impulso para sentirse como "doble altura"
-            float launchVelocity = ctrl != null ? ctrl.jumpForce * 3.5f : 42f;
+            float launchVelocity = ctrl != null ? ctrl.jumpForce * bouncePower : 42f;
 
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, launchVelocity, rb.linearVelocity.z);
 
+            // Sonido con volumen controlado
             if (boingClip != null)
-                AudioSource.PlayClipAtPoint(boingClip, collision.contacts[0].point);
+            {
+                Vector3 soundPos = collision.contacts.Length > 0 ? collision.contacts[0].point : transform.position;
+                AudioSource.PlayClipAtPoint(boingClip, soundPos, boingVolume);
+            }
+
+            // Feedback visual de rebote
+            StartCoroutine(BounceFeedback());
         }
+    }
+
+    System.Collections.IEnumerator BounceFeedback()
+    {
+        Vector3 originalScale = transform.localScale;
+        float t = 0f;
+
+        // Compresión
+        while (t < 0.5f)
+        {
+            t += Time.deltaTime / bounceDuration;
+            float scale = Mathf.Lerp(1f, 0.9f, t * 2f);
+            transform.localScale = originalScale * scale;
+            yield return null;
+        }
+
+        // Expansión
+        t = 0f;
+        while (t < 1f)
+        {
+            t += Time.deltaTime / bounceDuration;
+            float scale = Mathf.Lerp(0.9f, 1f, t);
+            transform.localScale = originalScale * scale;
+            yield return null;
+        }
+
+        transform.localScale = originalScale;
     }
 }

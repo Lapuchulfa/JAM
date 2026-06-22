@@ -9,8 +9,10 @@ public class PlayerRespawn : MonoBehaviour
 
     [Header("Juiciness")]
     public AudioClip respawnClip;
+    public AudioClip checkpointClip;
     [Range(0.05f, 0.3f)] public float shakeAmount = 0.12f;
     [Range(0.1f, 0.5f)]  public float shakeDuration = 0.2f;
+    [Range(0.05f, 0.15f)] public float respawnPauseDuration = 0.1f;
 
     private Vector3 respawnPoint;
     private Rigidbody rb;
@@ -32,7 +34,12 @@ public class PlayerRespawn : MonoBehaviour
         respawnPoint = point;
         // Feedback visual: pequeño destello de escala al registrar checkpoint
         if (scalePunchRoutine != null) StopCoroutine(scalePunchRoutine);
-        scalePunchRoutine = StartCoroutine(ScalePunch(1.2f, 0.08f));
+        scalePunchRoutine = StartCoroutine(ScalePunch(1.15f, 0.1f));
+
+        // Sonido de checkpoint
+        ThirdPersonController ctrl = GetComponent<ThirdPersonController>();
+        if (checkpointClip != null && ctrl != null)
+            ctrl.PlayClip(checkpointClip, 0.6f);
     }
 
     void Update()
@@ -51,9 +58,12 @@ public class PlayerRespawn : MonoBehaviour
         isRespawning = true;
 
         // 1. Squish hacia abajo antes de teletransportar
-        yield return StartCoroutine(ScalePunch(0.5f, 0.07f));
+        yield return StartCoroutine(ScalePunch(0.4f, 0.08f));
 
-        // 2. Teletransporte
+        // Pausa de respawn para efecto dramático
+        yield return new WaitForSeconds(respawnPauseDuration);
+
+        // 2. Teletransporte y reseteo de velocidad
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
         rb.position = respawnPoint;
