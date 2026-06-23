@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class PlayerMovementOptimizer : MonoBehaviour
 {
@@ -25,18 +26,15 @@ public class PlayerMovementOptimizer : MonoBehaviour
 
     void Update()
     {
-        // Mantener track de cuándo fue la última vez en tierra
         if (IsGrounded())
             lastGroundedTime = Time.time;
 
-        // Buffer de salto (permite presionar salto un poco antes de aterrizar)
         if (Input.GetButtonDown("Jump"))
             jumpBufferTime = Time.time;
     }
 
     void FixedUpdate()
     {
-        // Coyote time: permite saltar aunque haya dejado la plataforma hace poco
         if (Time.time - lastGroundedTime < coyoteTime && Time.time - jumpBufferTime < jumpBuffer)
         {
             ExecuteBufferedJump();
@@ -49,23 +47,22 @@ public class PlayerMovementOptimizer : MonoBehaviour
         {
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             rb.AddForce(Vector3.up * (controller != null ? controller.jumpForce : 12f), ForceMode.VelocityChange);
-            jumpBufferTime = -1f; // Consumir el buffer
+            jumpBufferTime = -1f;
 
-            // Feedback visual de salto
             StartCoroutine(JumpScaleFeedback());
         }
     }
 
     bool IsGrounded()
     {
+        if (controller == null || controller.groundCheck == null) return false;
         return Physics.CheckSphere(controller.groundCheck.position, controller.groundDistance, controller.groundMask);
     }
 
-    System.Collections.IEnumerator JumpScaleFeedback()
+    IEnumerator JumpScaleFeedback()
     {
         float elapsed = 0f;
 
-        // Expandir al saltar
         while (elapsed < jumpScaleDuration)
         {
             elapsed += Time.deltaTime;
@@ -74,7 +71,6 @@ public class PlayerMovementOptimizer : MonoBehaviour
             yield return null;
         }
 
-        // Volver al tamaño normal
         elapsed = 0f;
         while (elapsed < jumpScaleDuration * 0.5f)
         {
