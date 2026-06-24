@@ -4,8 +4,8 @@ using UnityEngine;
 public class ThirdPersonController : MonoBehaviour
 {
     [Header("Movimiento")]
-    public float moveSpeed = 18f;
-    public float acceleration = 80f;
+    public float moveSpeed = 22f;
+    public float acceleration = 100f;
     [Range(0f, 1f)]
     public float airControl = 0.5f;
     public float rotationTime = 0.15f;
@@ -41,7 +41,7 @@ public class ThirdPersonController : MonoBehaviour
     private float turnCalVelocity;
     private Vector3 inputDirection;
     private float lastFootstepTime;
-    private float footstepInterval = 0.4f;
+    private float footstepInterval = 0.3f;
 
     void Awake()
     {
