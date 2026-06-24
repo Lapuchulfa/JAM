@@ -141,24 +141,8 @@ public class AutoSetupManager : MonoBehaviour
             return;
         }
 
-        // Verificar parámetros
-        if (!animator.HasParameter("Jump"))
-        {
-            Debug.LogWarning("⚠️ ADVERTENCIA: El Animator NO tiene el trigger 'Jump'");
-            Debug.LogWarning("   → Debes agregarlo manualmente en el Animator Controller");
-        }
-
-        if (!animator.HasParameter("Land"))
-        {
-            Debug.LogWarning("⚠️ ADVERTENCIA: El Animator NO tiene el trigger 'Land'");
-            Debug.LogWarning("   → Debes agregarlo manualmente en el Animator Controller");
-        }
-
-        if (animator.HasParameter("isGrounded"))
-            Debug.Log("✅ Parámetro 'isGrounded' encontrado");
-
-        if (animator.HasParameter("Speed"))
-            Debug.Log("✅ Parámetro 'Speed' encontrado");
+        // Los parámetros deben estar configurados manualmente en el Animator Controller
+        Debug.Log("✅ Animator encontrado. Verifica que tenga los triggers: Jump, Land");
 
         if (showDebugMessages)
             Debug.Log("✅ Verificación de Animator completada (ver Console para detalles)");

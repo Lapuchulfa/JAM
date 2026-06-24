@@ -21,9 +21,8 @@ public class AnimationController : MonoBehaviour
             return;
         }
 
-        // Configurar parámetros si no existen
-        if (animator.HasParameter("Speed"))
-            animator.SetFloat("Speed", 0f);
+        // Configurar parámetros iniciales
+        animator.SetFloat("Speed", 0f);
     }
 
     void LateUpdate()
@@ -55,8 +54,8 @@ public class AnimationController : MonoBehaviour
 
     public void SetMovementSpeed(float speed)
     {
-        if (animator != null && animator.HasParameter("Speed"))
-            animator.SetFloat("Speed", Mathf.Clamp01(speed / 10f), transitionDuration, Time.deltaTime);
+        if (animator != null)
+            animator.SetFloat("Speed", Mathf.Clamp01(speed / 10f));
     }
 
     public void ResetAnimationState()

@@ -292,11 +292,8 @@ public class JAMSetupWindow : EditorWindow
         Animator animator = mc.GetComponent<Animator>();
         if (animator != null)
         {
-            bool hasJump = animator.HasParameter("Jump");
-            bool hasLand = animator.HasParameter("Land");
-            status += $"\nAnimator Parameters:\n";
-            status += (hasJump ? "✅" : "❌") + " Trigger 'Jump'\n";
-            status += (hasLand ? "❌" : "❌") + " Trigger 'Land'\n";
+            status += $"\n✅ Animator encontrado\n";
+            status += "   (Verifica triggers: Jump, Land en el Controller)\n";
         }
 
         EditorUtility.DisplayDialog("Setup Status", status, "OK");
