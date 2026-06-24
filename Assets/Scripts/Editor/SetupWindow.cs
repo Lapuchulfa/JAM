@@ -185,8 +185,7 @@ public class JAMSetupWindow : EditorWindow
         }
 
         float progress = (float)completed / completedSteps.Length;
-        Rect progressRect = EditorGUILayout.GetRect(200, 20);
-        EditorGUI.ProgressBar(progressRect, progress, $"{completed}/6 Completado ({(int)(progress * 100)}%)");
+        EditorGUILayout.LabelField($"Progreso: {completed}/6 Completado ({(int)(progress * 100)}%)");
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Pasos completados:");
