@@ -3,19 +3,30 @@ using UnityEngine;
 public class PlayerJuiciness : MonoBehaviour
 {
     [Header("Squash & Stretch")]
-    public float squashAmount = 0.8f;
-    public float stretchAmount = 1.2f;
-    public float squashDuration = 0.1f;
+    public float squashAmount = 0.7f;
+    public float stretchAmount = 1.15f;
+    public float squashDuration = 0.12f;
+    public float stretchDuration = 0.08f;
+
+    [Header("Bob al caminar")]
+    public float bobSpeed = 8f;
+    public float bobAmount = 0.02f;
 
     private Vector3 originalScale;
+    private Vector3 originalPosition;
     private float squashTimer;
+    private float stretchTimer;
     private Rigidbody rb;
     private bool wasGrounded;
+    private ThirdPersonController controller;
+    private float bobTimer;
 
     void Start()
     {
         originalScale = transform.localScale;
+        originalPosition = transform.position;
         rb = GetComponent<Rigidbody>();
+        controller = GetComponent<ThirdPersonController>();
     }
 
     void Update()
@@ -28,21 +39,46 @@ public class PlayerJuiciness : MonoBehaviour
         if (isGrounded && !wasGrounded && rb.linearVelocity.y < -5f)
         {
             squashTimer = squashDuration;
+            stretchTimer = 0;
         }
 
-        // Aplicar squash
+        // Stretch al saltar
+        if (!isGrounded && wasGrounded)
+        {
+            stretchTimer = stretchDuration;
+            squashTimer = 0;
+        }
+
+        // Aplicar squash/stretch
+        float scale = 1f;
         if (squashTimer > 0)
         {
             squashTimer -= Time.deltaTime;
             float squashProgress = 1f - (squashTimer / squashDuration);
-            float scale = Mathf.Lerp(squashAmount, 1f, squashProgress);
-            transform.localScale = new Vector3(originalScale.x * scale, originalScale.y * scale, originalScale.z * scale);
+            scale = Mathf.Lerp(squashAmount, 1f, squashProgress);
         }
-        else
+        else if (stretchTimer > 0)
         {
-            transform.localScale = originalScale;
+            stretchTimer -= Time.deltaTime;
+            float stretchProgress = 1f - (stretchTimer / stretchDuration);
+            scale = Mathf.Lerp(stretchAmount, 1f, stretchProgress);
+        }
+        else if (isGrounded && controller != null)
+        {
+            // Bob suave al caminar
+            float moveSpeed = rb.linearVelocity.magnitude;
+            if (moveSpeed > 0.5f)
+            {
+                bobTimer += Time.deltaTime * bobSpeed;
+                scale = 1f + Mathf.Sin(bobTimer) * bobAmount * (moveSpeed / 18f);
+            }
+            else
+            {
+                bobTimer = 0;
+            }
         }
 
+        transform.localScale = new Vector3(originalScale.x * scale, originalScale.y * scale, originalScale.z * scale);
         wasGrounded = isGrounded;
     }
 }

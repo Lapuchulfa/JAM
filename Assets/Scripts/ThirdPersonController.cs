@@ -4,15 +4,15 @@ using UnityEngine;
 public class ThirdPersonController : MonoBehaviour
 {
     [Header("Movimiento")]
-    public float moveSpeed = 14f;
-    public float acceleration = 60f;
+    public float moveSpeed = 18f;
+    public float acceleration = 80f;
     [Range(0f, 1f)]
     public float airControl = 0.5f;
     public float rotationTime = 0.15f;
     public float modelYawOffset = -90f;
 
     [Header("Salto")]
-    public float jumpForce = 15f;
+    public float jumpForce = 18f;
     [HideInInspector] public float fallMultiplier = 6f;
     [HideInInspector] public float lowJumpMultiplier = 3f;
     public Transform groundCheck;
