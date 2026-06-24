@@ -65,12 +65,14 @@ public class PlayerJuiciness : MonoBehaviour
         }
         else if (isGrounded && controller != null)
         {
-            // Bob suave al caminar
+            // Bob suave al caminar (más pronunciado al correr)
             float moveSpeed = rb.linearVelocity.magnitude;
             if (moveSpeed > 0.5f)
             {
                 bobTimer += Time.deltaTime * bobSpeed;
-                scale = 1f + Mathf.Sin(bobTimer) * bobAmount * (moveSpeed / 18f);
+                float speedFactor = moveSpeed / 18f;
+                float bobIntensity = bobAmount * (1f + speedFactor); // Más bob al correr
+                scale = 1f + Mathf.Sin(bobTimer) * bobIntensity;
             }
             else
             {

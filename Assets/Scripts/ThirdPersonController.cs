@@ -6,6 +6,7 @@ public class ThirdPersonController : MonoBehaviour
     [Header("Movimiento")]
     public float moveSpeed = 22f;
     public float acceleration = 100f;
+    public float sprintSpeedMultiplier = 1.8f;
     [Range(0f, 1f)]
     public float airControl = 0.5f;
     public float rotationTime = 0.15f;
@@ -36,6 +37,7 @@ public class ThirdPersonController : MonoBehaviour
     private bool isGrounded;
     private bool wasGrounded;
     private bool jumpRequested;
+    private bool isRunning;
     private bool isInAir;
     private bool wasInAir;
     private float turnCalVelocity;
@@ -96,6 +98,9 @@ public class ThirdPersonController : MonoBehaviour
             animator.SetTrigger("Jump");
         }
 
+        // Sprint con Shift
+        isRunning = Input.GetKey(KeyCode.LeftShift) && isGrounded && inputDirection.sqrMagnitude >= 0.01f;
+
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical   = Input.GetAxisRaw("Vertical");
         inputDirection = new Vector3(horizontal, 0f, vertical).normalized;
@@ -143,8 +148,9 @@ public class ThirdPersonController : MonoBehaviour
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
             Vector3 moveDirection = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-            targetVelocity = moveDirection * moveSpeed;
-            currentSpeed = moveSpeed;
+            float finalSpeed = isRunning ? moveSpeed * sprintSpeedMultiplier : moveSpeed;
+            targetVelocity = moveDirection * finalSpeed;
+            currentSpeed = finalSpeed;
         }
 
         Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
