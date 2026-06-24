@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEditor;
-using UnityEditor.SceneHierarchy;
 
 public class JAMSetupWindow : EditorWindow
 {

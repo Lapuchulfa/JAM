@@ -4,7 +4,6 @@ using UnityEngine;
 public class AutoSetupManager : MonoBehaviour
 {
     [Header("Auto Setup Configuration")]
-    [SerializeField] private bool autoSetupOnAwake = true;
     [SerializeField] private bool showDebugMessages = true;
 
     public void AutoConfigurePlayer()
